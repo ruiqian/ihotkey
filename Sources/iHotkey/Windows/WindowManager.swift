@@ -22,6 +22,7 @@ final class WindowManager {
 
     enum Outcome: Equatable {
         case moved
+        case minimized
         case notTrusted
         case noWindow
         case fullScreen
@@ -54,13 +55,23 @@ final class WindowManager {
     }
 
     @discardableResult
-    func perform(_ action: SnapAction, gap: CGFloat, cycle: Bool) -> Outcome {
+    func perform(_ action: SnapAction, gap: CGFloat, cycle: Bool, application: NSRunningApplication? = nil) -> Outcome {
         guard Accessibility.isTrusted else { return .notTrusted }
-        guard let window = focusedWindow(), let axFrame = frame(of: window) else {
+        guard let window = focusedWindow(for: application) else {
             NSSound.beep()
             return .noWindow
         }
         if isFullScreen(window) { NSSound.beep(); return .fullScreen }
+        if action == .minimize {
+            // AXMinimized affects only this window, not all windows in the app.
+            // Do not change its geometry or the saved pre-snap restore frame.
+            let error = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+            return error == .success ? .minimized : .failed(error)
+        }
+        guard let axFrame = frame(of: window) else {
+            NSSound.beep()
+            return .noWindow
+        }
 
         let screens = NSScreen.screens
         guard let primary = screens.first else { return .noTarget }
@@ -112,9 +123,24 @@ final class WindowManager {
     }
 
     /// Frame of the target window in Cocoa coordinates (for self-tests).
-    func targetWindowFrame() -> CGRect? {
-        guard let w = focusedWindow(), let f = frame(of: w), let primary = NSScreen.screens.first else { return nil }
+    func targetWindowFrame(for application: NSRunningApplication? = nil) -> CGRect? {
+        guard let w = focusedWindow(for: application), let f = frame(of: w), let primary = NSScreen.screens.first else { return nil }
         return SnapGeometry.flip(f, primaryScreenHeight: primary.frame.height)
+    }
+
+    /// Capture the exact target handle before minimizing; focus may change afterwards.
+    /// This closure reads back that same window and can unminimize it after a test.
+    func targetMinimizationProbe(for application: NSRunningApplication? = nil) -> ((Bool?) -> Bool?)? {
+        guard let window = focusedWindow(for: application) else { return nil }
+        return { value in
+            if let value {
+                let flag = value ? kCFBooleanTrue! : kCFBooleanFalse!
+                guard AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, flag) == .success else { return nil }
+            }
+            var result: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &result) == .success else { return nil }
+            return result as? Bool
+        }
     }
 
     // MARK: - Restore memory
@@ -138,8 +164,8 @@ final class WindowManager {
 
     // MARK: - AX helpers
 
-    private func focusedWindow() -> AXUIElement? {
-        guard let app = targetApp() else { return nil }
+    private func focusedWindow(for application: NSRunningApplication? = nil) -> AXUIElement? {
+        guard let app = application ?? targetApp(), !app.isTerminated else { return nil }
         let appEl = AXUIElementCreateApplication(app.processIdentifier)
         AXUIElementSetMessagingTimeout(appEl, 1.0)
         for attr in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {

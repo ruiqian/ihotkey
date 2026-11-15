@@ -10,7 +10,7 @@ public enum SnapAction: String, CaseIterable, Codable, Identifiable, Sendable {
     // Thirds
     case firstThird, centerThird, lastThird, firstTwoThirds, lastTwoThirds
     // Whole screen
-    case maximize, almostMaximize, maximizeHeight, center, restore
+    case maximize, almostMaximize, maximizeHeight, center, restore, minimize
     // Displays
     case nextDisplay, previousDisplay
 
@@ -25,7 +25,7 @@ public enum SnapAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case .leftHalf, .rightHalf, .topHalf, .bottomHalf: return .halves
         case .topLeft, .topRight, .bottomLeft, .bottomRight: return .quarters
         case .firstThird, .centerThird, .lastThird, .firstTwoThirds, .lastTwoThirds: return .thirds
-        case .maximize, .almostMaximize, .maximizeHeight, .center, .restore: return .screen
+        case .maximize, .almostMaximize, .maximizeHeight, .center, .restore, .minimize: return .screen
         case .nextDisplay, .previousDisplay: return .displays
         }
     }
@@ -50,6 +50,7 @@ public enum SnapAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case .maximizeHeight: return L("最大化高度", "Maximize Height")
         case .center: return L("居中", "Center")
         case .restore: return L("恢复原大小", "Restore")
+        case .minimize: return L("最小化窗口", "Minimize Window")
         case .nextDisplay: return L("移到下一个显示器", "Next Display")
         case .previousDisplay: return L("移到上一个显示器", "Previous Display")
         }
@@ -74,7 +75,7 @@ public enum SnapAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case .lastTwoThirds: return CGRect(x: 1.0 / 3, y: 0, width: 2.0 / 3, height: 1)
         case .maximize: return CGRect(x: 0, y: 0, width: 1, height: 1)
         case .almostMaximize: return CGRect(x: 0.05, y: 0.05, width: 0.9, height: 0.9)
-        case .maximizeHeight, .center, .restore, .nextDisplay, .previousDisplay: return nil
+        case .maximizeHeight, .center, .restore, .minimize, .nextDisplay, .previousDisplay: return nil
         }
     }
 
@@ -109,6 +110,7 @@ public enum SnapAction: String, CaseIterable, Codable, Identifiable, Sendable {
         case .maximizeHeight: return KeyCombo(keyCode: KeyCode.upArrow, modifiers: [.control, .option, .shift])
         case .center: return KeyCombo(keyCode: KeyCode.c, modifiers: ca)
         case .restore: return KeyCombo(keyCode: KeyCode.delete, modifiers: ca)
+        case .minimize: return KeyCombo(keyCode: KeyCode.m, modifiers: ca)
         case .nextDisplay: return KeyCombo(keyCode: KeyCode.rightArrow, modifiers: cac)
         case .previousDisplay: return KeyCombo(keyCode: KeyCode.leftArrow, modifiers: cac)
         }

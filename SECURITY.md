@@ -2,7 +2,7 @@
 
 ## Project status and supported versions
 
-iHotkey is preparing `1.0.0-rc.1`, a prerelease candidate. There is no stable-release support commitment or guaranteed response time. Security fixes will target the current development line and latest candidate; historical builds should not be assumed to receive backports.
+iHotkey is preparing `1.0.0-rc.2`, a prerelease candidate. There is no stable-release support commitment or guaranteed response time. Security fixes will target the current development line and latest candidate; historical builds should not be assumed to receive backports.
 
 The macOS 12 deployment target and universal build configuration are not security certifications. See [known issues](docs/KNOWN_ISSUES.md) and the [historical compatibility report](docs/testing/legacy-compatibility-report.md) for verification limits. No completed Developer ID/notarization release is claimed.
 
@@ -49,7 +49,7 @@ If a credential or signing key is exposed, revoke or rotate it through its provi
 
 ## 中文说明
 
-当前版本为 `1.0.0-rc.1` 候选版本，不提供响应时限或长期安全维护承诺。请勿在公开 Issue、PR 或讨论中发布未修复漏洞、利用代码、私密日志或凭据。
+当前版本为 `1.0.0-rc.2` 候选版本，不提供响应时限或长期安全维护承诺。请勿在公开 Issue、PR 或讨论中发布未修复漏洞、利用代码、私密日志或凭据。
 
 仓库在 GitHub 托管后，若已开启私密漏洞报告，请使用 **Security → Report a vulnerability**。若入口不存在，只能公开询问如何建立私密通道，**不要附带敏感细节**；确认维护者提供的私密渠道后再发送。项目未提供安全联系邮箱，请勿猜测邮箱或向未经核实的账号发送信息。
 

@@ -6,6 +6,21 @@ User-visible changes and release-readiness notes for iHotkey. Candidate headings
 
 Changes after the `1.0.0-rc.1` candidate will be recorded here.
 
+## [1.0.0-rc.2] — Unreleased candidate
+
+### Fixed
+
+- Minimizing iHotkey's own settings window now uses its native hide-to-menu-bar path before any Accessibility check. The preview button no longer hides first and accidentally targets the previous application.
+- Minimize failures now distinguish full-screen, missing window and AX failure instead of always suggesting the window is full-screen.
+- Added a failing-then-passing UI regression for own-window minimize, continued menu-bar operation and absence of an error toast.
+- Real snap diagnostics explicitly target TextEdit, not whichever app happens to become frontmost during the test.
+
+### Added
+
+- **Minimize Window** in Window Snap → Screen and the status-bar menu. Uses Accessibility `AXMinimized` to minimize the focused window to Dock, not hide the whole app.
+- Default `⌃⌥M` for new configurations. Existing/imported configurations retain their bindings without silently adding a new global shortcut; record a key for the new row explicitly.
+- Four core regression tests for action/default registration, non-geometric behavior, safe old config decoding, custom bindings and clearing. Snap self-test now reads `AXMinimized` on the same window handle and unminimizes it during cleanup.
+
 ## [1.0.0-rc.1] — Unreleased candidate
 
 ### Added

@@ -112,18 +112,22 @@ enum SelfTest {
                 .activate(options: [])
             step(0.8) {
                 let wm = WindowManager.shared
-                log("target app: \(wm.targetApp()?.localizedName ?? "nil")")
+                guard let testApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit").first else {
+                    check(false, "TextEdit must be running; refuse to operate on another application")
+                    finish(); return
+                }
+                log("target app: \(testApp.localizedName ?? "TextEdit") (\(testApp.bundleIdentifier ?? ""))")
                 guard let screen = NSScreen.screens.first(where: {
-                    wm.targetWindowFrame().map($0.frame.intersects) ?? false
+                    wm.targetWindowFrame(for: testApp).map($0.frame.intersects) ?? false
                 }) ?? NSScreen.main else { check(false, "screen"); finish(); return }
                 let visible = screen.visibleFrame
-                let before = wm.targetWindowFrame()
+                let before = wm.targetWindowFrame(for: testApp)
                 check(before != nil, "read focused window frame \(before.map { "\($0)" } ?? "")")
 
                 for action in [SnapAction.leftHalf, .rightHalf, .topLeft, .maximize, .center, .restore] {
-                    let outcome = wm.perform(action, gap: 0, cycle: false)
+                    let outcome = wm.perform(action, gap: 0, cycle: false, application: testApp)
                     usleep(300_000)
-                    let now = wm.targetWindowFrame() ?? .zero
+                    let now = wm.targetWindowFrame(for: testApp) ?? .zero
                     var ok = outcome == .moved
                     if let unit = action.unitRect {
                         let expected = SnapGeometry.rect(forUnit: unit, in: visible)
@@ -133,6 +137,20 @@ enum SelfTest {
                         ok = ok && SnapGeometry.approximatelyEqual(now, before, tolerance: 4)
                     }
                     check(ok, "\(action.rawValue) -> \(outcome) frame \(now.integral)")
+                }
+                // Keep the original AX window handle: minimizing can change app focus.
+                if let probe = wm.targetMinimizationProbe(for: testApp) {
+                    let initial = probe(nil)
+                    check(initial == false, "test window initially not minimized")
+                    let outcome = wm.perform(.minimize, gap: 0, cycle: false, application: testApp)
+                    usleep(400_000)
+                    check(outcome == .minimized && probe(nil) == true,
+                          "minimize -> \(outcome), AXMinimized readback true")
+                    _ = probe(false)
+                    usleep(400_000)
+                    check(probe(nil) == false, "test cleanup: original window unminimized")
+                } else {
+                    check(false, "capture target window for minimize readback")
                 }
                 finish()
             }

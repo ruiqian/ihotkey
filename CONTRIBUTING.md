@@ -10,7 +10,7 @@ From your local checkout:
 
 ```bash
 ./scripts/test.sh
-VERSION=1.0.0-rc.1 SIGN_IDENTITY=- ./scripts/build-app.sh
+VERSION=1.0.0-rc.2 SIGN_IDENTITY=- ./scripts/build-app.sh
 ```
 
 `test.sh` handles the Swift Testing framework paths required by Command Line Tools installations. The build creates a universal `dist/iHotkey.app` and versioned DMG; it does not install or launch the app. Open `Package.swift` in Xcode for interactive development.
@@ -112,7 +112,7 @@ Do not claim these scenarios passed unless you ran them. Preserve a copy of the 
 
 ## Release preparation
 
-`VERSION` is the release-version source of truth. The current candidate is `1.0.0-rc.1`; keep it aligned with release notes and any explicit `VERSION` override. A candidate is not a stable-release claim.
+`VERSION` is the release-version source of truth. The current candidate is `1.0.0-rc.2`; keep it aligned with release notes and any explicit `VERSION` override. A candidate is not a stable-release claim.
 
 Before publishing:
 
@@ -122,7 +122,7 @@ Before publishing:
 4. Run the release workflow intentionally with the configured identity and profile:
 
    ```bash
-   VERSION=1.0.0-rc.1 \
+   VERSION=1.0.0-rc.2 \
    SIGN_IDENTITY="Developer ID Application: YOUR SIGNING IDENTITY" \
    NOTARY_PROFILE=ihotkey-notary \
    ./scripts/release.sh

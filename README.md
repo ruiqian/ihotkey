@@ -6,12 +6,12 @@
 
 A native, open-source macOS menu bar app for launching apps and arranging windows. Built with Swift, SwiftUI and AppKit—no Electron, accounts or telemetry.
 
-> **Release candidate:** `1.0.0-rc.1`. This repository is being prepared for its first public release. No published download or Apple-notarized build is currently claimed. Build locally using the instructions below, and review the [known issues](docs/KNOWN_ISSUES.md) before relying on it.
+> **Release candidate:** `1.0.0-rc.2`. This repository is being prepared for its first public release. No published download or Apple-notarized build is currently claimed. Build locally using the instructions below, and review the [known issues](docs/KNOWN_ISSUES.md) before relying on it.
 
 ## What it does
 
 - **App shortcuts:** assign a global shortcut to an app. Choose **Open / Focus**, or **Show / Hide** to hide it when it is already frontmost.
-- **Window snapping:** 20 actions covering halves, quarters, thirds, two-thirds, maximize, almost maximize, maximize height, center, restore, and moving between displays.
+- **Window snapping:** 21 actions covering halves, quarters, thirds, two-thirds, maximize, almost maximize, maximize height, center, restore, and moving between displays.
 - **Make it yours:** record shortcuts, adjust window gaps, and optionally cycle half-screen layouts through **½ → ⅔ → ⅓**.
 - **Stay out of the way:** closing or minimizing the settings window keeps iHotkey in the menu bar. Pause hotkeys from the menu when needed.
 - **Local preferences:** import and export JSON configuration; choose English, Simplified Chinese, or the system language.
@@ -43,10 +43,10 @@ From the repository root:
 
 ```bash
 ./scripts/test.sh
-VERSION=1.0.0-rc.1 SIGN_IDENTITY=- ./scripts/build-app.sh
+VERSION=1.0.0-rc.2 SIGN_IDENTITY=- ./scripts/build-app.sh
 ```
 
-The build produces `dist/iHotkey.app` and `dist/iHotkey-1.0.0-rc.1.dmg`. The default local signing mode is **ad-hoc**; it is not Apple Developer ID signing or notarization. Building does not install the app.
+The build produces `dist/iHotkey.app` and `dist/iHotkey-1.0.0-rc.2.dmg`. The default local signing mode is **ad-hoc**; it is not Apple Developer ID signing or notarization. Building does not install the app.
 
 To try your local build:
 
@@ -127,6 +127,7 @@ The app has no account, analytics or application-level network service. Exported
 | Maximize height | `⌃⌥⇧↑` |
 | Center | `⌃⌥C` |
 | Restore | `⌃⌥Delete` |
+| Minimize external window to Dock; iHotkey to menu bar | `⌃⌥M` (new configs; record manually for existing configs) |
 | Next / Previous display | `⌃⌥⌘→` / `⌃⌥⌘←` |
 
 Maximize resizes within the usable display area; it is not macOS full-screen mode. Some apps enforce minimum sizes or do not expose resizable windows. Restore is session-based, not a persistent window history; see the [known restore-error limitation](docs/KNOWN_ISSUES.md).

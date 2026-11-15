@@ -41,6 +41,12 @@ class RepositoryTests(unittest.TestCase):
         source = (ROOT/'Sources/iHotkey/Views/GeneralView.swift').read_text()
         self.assertIn('forInfoDictionaryKey: "IHReleaseVersion"', source)
 
+    def test_snap_diagnostics_pin_textedit_target(self):
+        source = (ROOT/'Sources/iHotkey/Diagnostics/SelfTest.swift').read_text()
+        self.assertIn('application: testApp', source)
+        self.assertIn('refuse to operate on another application', source)
+        self.assertNotIn('wm.targetWindowFrame()', source)
+
     def test_build_is_explicit_and_non_destructive(self):
         build = (ROOT/'scripts/build-app.sh').read_text()
         self.assertIn('com.ihotkey.app', build)

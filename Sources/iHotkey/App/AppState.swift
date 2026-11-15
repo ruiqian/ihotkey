@@ -136,6 +136,10 @@ final class AppState: ObservableObject {
     }
 
     func performSnap(_ action: SnapAction) {
+        if action == .minimize,
+           (NSApp.delegate as? AppDelegate)?.minimizeOwnWindowIfFocused() == true {
+            return
+        }
         let outcome = WindowManager.shared.perform(
             action,
             gap: CGFloat(config.settings.snapGap),
@@ -147,6 +151,21 @@ final class AppState: ObservableObject {
             selectedTab = .snap
             (NSApp.delegate as? AppDelegate)?.showMainWindow()
             showToast(L("分屏需要辅助功能权限，请按页面顶部提示授权", "Window snap needs Accessibility permission — see the banner above"), isError: true)
+        } else if action == .minimize && outcome != .minimized {
+            selectedTab = .snap
+            (NSApp.delegate as? AppDelegate)?.showMainWindow()
+            let message: String
+            switch outcome {
+            case .fullScreen:
+                message = L("全屏窗口不能最小化，请先退出全屏。", "Leave full screen before minimizing this window.")
+            case .noWindow, .noTarget:
+                message = L("没有找到可最小化的窗口，请先选中一个普通窗口。", "No window to minimize. Select a normal window first.")
+            case .failed(let error):
+                message = L("当前窗口拒绝最小化（系统错误 \(error.rawValue)）。", "This window refused minimization (system error \(error.rawValue)).")
+            default:
+                message = L("当前窗口未能最小化。", "The current window could not be minimized.")
+            }
+            showToast(message, isError: true)
         }
     }
 

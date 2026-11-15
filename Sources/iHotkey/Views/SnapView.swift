@@ -100,7 +100,13 @@ private struct SnapRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Button {
-                // Hide our window so the action applies to the window behind it.
+                // Minimize acts on our visible settings window immediately. Hiding
+                // first would lose the target and operate on a different app.
+                if action == .minimize {
+                    state.performSnap(action)
+                    return
+                }
+                // Layout previews still apply to the external window behind us.
                 (NSApp.delegate as? AppDelegate)?.hideToMenuBar()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { state.performSnap(action) }
             } label: {
@@ -173,6 +179,11 @@ struct SnapGlyph: View {
                 RoundedRectangle(cornerRadius: 1.5).fill(Color.accentColor)
                     .frame(width: w * 0.4, height: h)
                     .offset(x: inset + w * 0.3, y: inset)
+            case .minimize:
+                Image(systemName: "minus")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.accentColor)
+                    .frame(width: size.width, height: size.height)
             case .restore:
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 10, weight: .semibold))

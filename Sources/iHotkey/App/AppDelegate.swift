@@ -61,6 +61,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             check(window?.isVisible == false && window?.isMiniaturized == false, "minimize goes to menu bar, not Dock")
             check(NSApp.activationPolicy() == .accessory, "Dock icon removed after minimize")
 
+            // Regression: a global minimize request while our own settings window
+            // is frontmost must hide this window, not target the previous app or toast.
+            showMainWindow()
+            state.toast = nil
+            state.performSnap(.minimize)
+            check(window?.isVisible == false, "minimize action hides iHotkey's own window")
+            check(NSApp.activationPolicy() == .accessory, "own minimize action retains menu-bar operation")
+            check(state.toast == nil, "own minimize action does not show an unrelated AX/full-screen error")
+
             let menu = statusItem.menu!
             menuNeedsUpdate(menu)
             let titles = menu.items.map(\.title)
@@ -128,6 +137,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         state.refreshLaunchAtLogin()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Local windows do not need AX permission. Their minimize behavior is
+    /// intentionally menu-bar hiding, matching the yellow traffic-light button.
+    @discardableResult
+    func minimizeOwnWindowIfFocused() -> Bool {
+        guard let window, window.isVisible,
+              window.isKeyWindow || (NSApp.isActive && NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier)
+        else { return false }
+        window.miniaturize(nil)
+        return true
     }
 
     func hideToMenuBar() {

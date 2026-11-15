@@ -2,7 +2,7 @@
 
 ## Current readiness
 
-The repository can be built and tested locally. No GitHub account/repository has been selected, workflows have **not** run on GitHub, and no Developer ID notarization is claimed. The initial version is `1.0.0-rc.1`. Resolve or disclose [known issues](KNOWN_ISSUES.md) before promoting it to stable.
+The repository can be built and tested locally. No GitHub account/repository has been selected, workflows have **not** run on GitHub, and no Developer ID notarization is claimed. The initial version is `1.0.0-rc.2`. Resolve or disclose [known issues](KNOWN_ISSUES.md) before promoting it to stable.
 
 ## Before the first push
 
@@ -32,8 +32,8 @@ A `v*` tag matching `VERSION` runs the draft workflow. The workflow creates a **
 
 ```bash
 # After reviewing code, release notes and version:
-git tag v1.0.0-rc.1
-git push origin v1.0.0-rc.1
+git tag v1.0.0-rc.2
+git push origin v1.0.0-rc.2
 ```
 
 Do not publish that draft as a notarized stable release. Review its warnings, or replace its development assets with the official notarized artifacts below.

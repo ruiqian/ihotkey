@@ -1,4 +1,4 @@
-# iHotkey 1.0.0-rc.1 — release notes draft
+# iHotkey 1.0.0-rc.2 — release notes draft
 
 Free, MIT-licensed native macOS app shortcuts and window snapping.
 
@@ -6,6 +6,10 @@ Free, MIT-licensed native macOS app shortcuts and window snapping.
 - Twenty window actions including halves, quarters, thirds, maximize, center, restore and display movement.
 - Menu-bar operation, hide-on-close/minimize, launch-at-login support, English and Simplified Chinese UI.
 - Renamed from the local KeyPilot prototype; source organization and contributor/release documentation prepared.
+
+## Minimize window
+
+The Window Snap → Screen section includes **Minimize Window**. New configs default to `⌃⌥M`; existing configs can record a shortcut without overwriting previous bindings. External app windows minimize to Dock, while iHotkey's own settings window hides to the menu bar. This follows the existing yellow-button behavior and needs no Accessibility permission for iHotkey itself.
 
 ## Before installing
 
