@@ -1,0 +1,28 @@
+name: Bug report
+description: Report reproducible behavior (no secrets or unreviewed configuration)
+body:
+  - type: input
+    id: version
+    attributes:
+      label: iHotkey version and source
+      placeholder: 1.0.0-rc.1, local build / release DMG
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: macOS version and CPU
+      placeholder: macOS 14.x, Apple Silicon / Intel
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant permissions, display layout and sanitized logs
+      description: Do not post passwords, certificates, private keys or personal app paths.

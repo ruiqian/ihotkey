@@ -1,108 +1,72 @@
 #!/usr/bin/env bash
-# Build KeyPilot.app (universal arm64 + x86_64, macOS 12+) and a DMG.
-#   ./scripts/build-app.sh            -> dist/KeyPilot.app + dist/KeyPilot-<ver>.dmg
-#   SIGN_IDENTITY="Developer ID Application: …" ./scripts/build-app.sh   (optional real signing)
+# Build a universal macOS 12+ app and DMG; preserve previous artifacts.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-
-VERSION="${VERSION:-1.0.0}"
-BUILD="${BUILD:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}"
-BUNDLE_ID="com.keypilot.app"
-APP="dist/KeyPilot.app"
-SIGN_IDENTITY="${SIGN_IDENTITY:-}"
-SIGN_KEYCHAIN="$HOME/Library/Keychains/keypilot-signing.keychain-db"
-SIGN_PWFILE="$HOME/Library/Application Support/KeyPilot/.signing-keychain-password"
-
-echo "==> Compiling (release, universal)"
-if swift build -c release --arch arm64 --arch x86_64 >/tmp/keypilot-build.log 2>&1; then
-  BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/KeyPilot"
-else
-  echo "    universal build unavailable here, building per-arch and merging with lipo"
-  swift build -c release --triple arm64-apple-macosx12.0
-  swift build -c release --triple x86_64-apple-macosx12.0
-  mkdir -p .build/universal
-  lipo -create \
-    .build/arm64-apple-macosx/release/KeyPilot \
-    .build/x86_64-apple-macosx/release/KeyPilot \
-    -output .build/universal/KeyPilot
-  BIN=.build/universal/KeyPilot
-fi
-
-echo "==> Assembling $APP"
-rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/KeyPilot"
-
-if [[ ! -f build/AppIcon.icns ]]; then
-  echo "==> Rendering icon"
-  mkdir -p build/AppIcon.iconset
-  swift scripts/make-icon.swift build/icon-1024.png
-  for s in 16 32 128 256 512; do
-    sips -z $s $s build/icon-1024.png --out build/AppIcon.iconset/icon_${s}x${s}.png >/dev/null
-    sips -z $((s*2)) $((s*2)) build/icon-1024.png --out build/AppIcon.iconset/icon_${s}x${s}@2x.png >/dev/null
-  done
-  iconutil -c icns build/AppIcon.iconset -o build/AppIcon.icns
-fi
-cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-
-cat > "$APP/Contents/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key><string>en</string>
-  <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
-  <key>CFBundleDisplayName</key><string>KeyPilot</string>
-  <key>CFBundleName</key><string>KeyPilot</string>
-  <key>CFBundleExecutable</key><string>KeyPilot</string>
-  <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
-  <key>CFBundleIconFile</key><string>AppIcon</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-  <key>CFBundleVersion</key><string>${BUILD}</string>
-  <key>LSMinimumSystemVersion</key><string>12.0</string>
-  <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
-  <key>LSUIElement</key><true/>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>NSSupportsAutomaticTermination</key><false/>
-  <key>NSSupportsSuddenTermination</key><false/>
-  <key>NSHumanReadableCopyright</key><string>MIT License. Free and open source.</string>
-</dict>
-</plist>
-PLIST
-printf 'APPL????' > "$APP/Contents/PkgInfo"
-
-echo "==> Codesigning"
-# Default: a stable local self-signed identity (keeps the Accessibility permission
-# across rebuilds). Set SIGN_IDENTITY="Developer ID Application: …" for releases,
-# or SIGN_IDENTITY=- to force ad-hoc (permission is then lost on every rebuild).
-if [[ -z "$SIGN_IDENTITY" ]]; then
-  if SIGN_IDENTITY="$(./scripts/setup-signing.sh 2>/dev/null)"; then
-    security unlock-keychain -p "$(cat "$SIGN_PWFILE")" "$SIGN_KEYCHAIN"
-    echo "    using local identity: $SIGN_IDENTITY"
-    codesign --force --deep --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$APP"
-  else
-    echo "    WARNING: could not create a local signing identity; falling back to ad-hoc."
-    echo "    Accessibility permission will have to be re-granted after each rebuild."
-    codesign --force --deep --sign - "$APP"
-  fi
-elif [[ "$SIGN_IDENTITY" == "-" ]]; then
-  codesign --force --deep --sign - "$APP"
-else
-  codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
-fi
-codesign --verify --strict "$APP"
-codesign -d -r- "$APP" 2>&1 | grep designated
-
-echo "==> Creating DMG"
-DMG="dist/KeyPilot-${VERSION}.dmg"
-STAGE="$(mktemp -d)"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
-rm -f "$DMG"
-hdiutil create -volname "KeyPilot" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
-rm -rf "$STAGE"
-
-echo "==> Done"
-lipo -info "$APP/Contents/MacOS/KeyPilot"
-ls -lh "$DMG"
+VERSION="${VERSION:-$(tr -d '\r\n' < VERSION)}"
+BUILD="${BUILD:-$(git rev-list --count HEAD 2>/dev/null || printf 1)}"
+SIGN_MODE="${SIGN_MODE:-adhoc}"
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]] || { echo 'Invalid VERSION' >&2; exit 2; }
+[[ "$BUILD" =~ ^[0-9]+$ ]] || { echo 'BUILD must be numeric' >&2; exit 2; }
+APP=dist/iHotkey.app
+DMG="dist/iHotkey-$VERSION.dmg"
+BUNDLE_ID=com.ihotkey.app
+mkdir -p build dist
+RUN="$(mktemp -d "$PWD/build/package.XXXXXX")"
+# Per-triple builds work with Xcode and Command Line Tools.
+for cpu in arm64 x86_64; do
+  swift build -c release --triple "$cpu-apple-macosx12.0" | tee "$RUN/build-$cpu.log"
+done
+BUNDLE="$RUN/iHotkey.app"
+mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
+lipo -create .build/arm64-apple-macosx/release/iHotkey .build/x86_64-apple-macosx/release/iHotkey \
+  -output "$BUNDLE/Contents/MacOS/iHotkey"
+swift scripts/make-icon.swift "$RUN/icon.png"
+mkdir -p "$RUN/AppIcon.iconset"
+for size in 16 32 128 256 512; do
+  sips -z "$size" "$size" "$RUN/icon.png" --out "$RUN/AppIcon.iconset/icon_${size}x${size}.png" >/dev/null
+  twice=$((size*2))
+  sips -z "$twice" "$twice" "$RUN/icon.png" --out "$RUN/AppIcon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$RUN/AppIcon.iconset" -o "$BUNDLE/Contents/Resources/AppIcon.icns"
+python3 - "$BUNDLE" "$VERSION" "$BUILD" <<'PY'
+import pathlib, plistlib, sys
+bundle, version, build = sys.argv[1:]
+p = pathlib.Path(bundle)/'Contents'
+info = dict(CFBundleDevelopmentRegion='en', CFBundleLocalizations=['en','zh-Hans'],
+ CFBundleDisplayName='iHotkey', CFBundleName='iHotkey', CFBundleExecutable='iHotkey',
+ CFBundleIdentifier='com.ihotkey.app', CFBundleIconFile='AppIcon', CFBundlePackageType='APPL',
+ CFBundleShortVersionString=version.split('-')[0], CFBundleVersion=build,
+ IHReleaseVersion=version, LSMinimumSystemVersion='12.0', LSUIElement=True,
+ LSApplicationCategoryType='public.app-category.utilities', NSHighResolutionCapable=True,
+ NSSupportsAutomaticTermination=False, NSSupportsSuddenTermination=False,
+ NSHumanReadableCopyright='MIT License. iHotkey contributors.')
+(p/'Info.plist').write_bytes(plistlib.dumps(info))
+(p/'PkgInfo').write_bytes(b'APPL????')
+PY
+case "$SIGN_MODE" in
+  adhoc) codesign --force --sign - "$BUNDLE" ;;
+  local)
+    SIGN_IDENTITY="$(bash scripts/setup-signing.sh)"
+    KEYCHAIN="$HOME/Library/Keychains/ihotkey-signing.keychain-db"
+    security unlock-keychain -p "$(<"$HOME/Library/Application Support/iHotkey/.signing-keychain-password")" "$KEYCHAIN"
+    codesign --force --keychain "$KEYCHAIN" --sign "$SIGN_IDENTITY" "$BUNDLE" ;;
+  developer-id)
+    [[ "$SIGN_IDENTITY" == 'Developer ID Application:'* ]] || { echo 'Developer ID Application identity required' >&2; exit 2; }
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$BUNDLE" ;;
+  *) echo 'Choose SIGN_MODE=adhoc, local or developer-id' >&2; exit 2 ;;
+esac
+codesign --verify --strict "$BUNDLE"
+mkdir -p "$RUN/previous"
+for artifact in "$APP" "$DMG" dist/SHA256SUMS; do
+  if [[ -e "$artifact" ]]; then mv "$artifact" "$RUN/previous/"; fi
+done
+mv "$BUNDLE" "$APP"
+mkdir -p "$RUN/dmg-stage"
+ditto "$APP" "$RUN/dmg-stage/iHotkey.app"
+ln -s /Applications "$RUN/dmg-stage/Applications"
+hdiutil create -volname iHotkey -srcfolder "$RUN/dmg-stage" -format UDZO "$DMG" >/dev/null
+hdiutil verify "$DMG" > "$RUN/dmg-verification.log"
+(cd dist && shasum -a 256 "iHotkey-$VERSION.dmg" > SHA256SUMS)
+lipo -info "$APP/Contents/MacOS/iHotkey"
+printf 'Built %s (%s signing)\nLogs and previous artifacts: %s\n' "$DMG" "$SIGN_MODE" "$RUN"

@@ -1,0 +1,21 @@
+# Homebrew cask template. After a notarized release is uploaded to GitHub,
+# fill in the repo, version and sha256 (printed by scripts/release.sh), then
+# submit to your own tap (brew tap <you>/tap) or to homebrew/homebrew-cask.
+cask "ihotkey" do
+  version "1.0.0"
+  sha256 "REPLACE_WITH_SHA256"
+
+  url "https://github.com/OWNER/iHotkey/releases/download/v#{version}/iHotkey-#{version}.dmg"
+  name "iHotkey"
+  desc "Free, open-source app shortcuts and window snapping"
+  homepage "https://github.com/OWNER/iHotkey"
+
+  depends_on macos: ">= :monterey"
+
+  app "iHotkey.app"
+
+  zap trash: [
+    "~/Library/Application Support/iHotkey",
+    "~/Library/LaunchAgents/com.ihotkey.app.launcher.plist",
+  ]
+end

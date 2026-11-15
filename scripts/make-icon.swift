@@ -1,4 +1,4 @@
-// Renders the KeyPilot app icon (1024x1024 PNG) with AppKit — no design tools needed.
+// Renders the iHotkey app icon (1024x1024 PNG) with AppKit — no design tools needed.
 // Usage: swift scripts/make-icon.swift <output.png>
 import AppKit
 

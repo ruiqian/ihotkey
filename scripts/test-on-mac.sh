@@ -3,9 +3,9 @@
 # No TCC reset, login-item writes, Rosetta installation or network access.
 # Logs PASS/FAIL/BLOCKED for the host that really ran the tests.
 set -u
-APP="${1:-/Applications/KeyPilot.app}"
-OUT="${2:-$HOME/Desktop/KeyPilot-Compatibility-$(date +%Y%m%d-%H%M%S)}"
-BIN="$APP/Contents/MacOS/KeyPilot"
+APP="${1:-/Applications/iHotkey.app}"
+OUT="${2:-$HOME/Desktop/iHotkey-Compatibility-$(date +%Y%m%d-%H%M%S)}"
+BIN="$APP/Contents/MacOS/iHotkey"
 if [ ! -x "$BIN" ]; then printf 'Missing app: %s\n' "$APP"; exit 2; fi
 if [ -e "$OUT" ]; then printf 'Output already exists: %s\n' "$OUT"; exit 2; fi
 mkdir -p "$OUT"
@@ -17,7 +17,7 @@ PASS=0; FAIL=0; BLOCKED=0
   shasum -a 256 "$BIN"
   lipo -archs "$BIN"
 } > "$OUT/host.txt" 2>&1
-printf 'Logs: %s\nThis briefly closes KeyPilot and focuses a scratch TextEdit window.\n' "$OUT"
+printf 'Logs: %s\nThis briefly closes iHotkey and focuses a scratch TextEdit window.\n' "$OUT"
 
 # Ask the running app to quit gracefully; do not kill unrelated copies.
 PIDS="$(ps -axo pid=,comm= | while read -r pid path; do [ "$path" = "$BIN" ] && printf '%s\n' "$pid"; done)"
@@ -50,13 +50,13 @@ check "ui-$CPU" 'UI SELF-TEST OK' /usr/bin/arch "-$CPU" "$BIN" --self-test-ui
 if [ "$CPU" = arm64 ]; then
   check basic-x86_64 'SELF-TEST OK' /usr/bin/arch -x86_64 "$BIN" --self-test
 fi
-# LaunchServices is necessary so the TCC grant is attributed to KeyPilot itself.
+# LaunchServices is necessary so the TCC grant is attributed to iHotkey itself.
 open -n "$APP" --args --self-test-snap "$OUT/snap.txt"
 for n in {1..40}; do [ -f "$OUT/snap.txt" ] && break; sleep 1; done
 if [ -f "$OUT/snap.txt" ] && grep -qF 'SNAP-TEST OK' "$OUT/snap.txt"; then
   echo 'PASS snap (6 real TextEdit actions)' | tee -a "$OUT/summary.txt"; PASS=$((PASS+1))
 elif [ -f "$OUT/snap.txt" ] && grep -qF 'FAIL AXIsProcessTrusted' "$OUT/snap.txt"; then
-  echo 'BLOCKED snap: grant KeyPilot Accessibility permission and rerun' | tee -a "$OUT/summary.txt"; BLOCKED=$((BLOCKED+1))
+  echo 'BLOCKED snap: grant iHotkey Accessibility permission and rerun' | tee -a "$OUT/summary.txt"; BLOCKED=$((BLOCKED+1))
 else
   echo 'FAIL snap: inspect snap.txt; no report also counts as failure' | tee -a "$OUT/summary.txt"; FAIL=$((FAIL+1))
 fi

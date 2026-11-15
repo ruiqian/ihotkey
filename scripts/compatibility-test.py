@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Audit real release binaries and typecheck deployment targets. No VM simulation.
 Usage: python3 scripts/compatibility-test.py [--runtime] [--snap] [--out DIR]
-Runtime tests briefly close/reopen KeyPilot and focus a scratch TextEdit window.
+Runtime tests briefly close/reopen iHotkey and focus a scratch TextEdit window.
 They do not toggle login items, reset TCC, or install Rosetta.
 """
 import argparse
@@ -17,7 +17,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 p = argparse.ArgumentParser(description=__doc__)
-p.add_argument('--app', default='/Applications/KeyPilot.app')
+p.add_argument('--app', default='/Applications/iHotkey.app')
 p.add_argument('--out')
 p.add_argument('--runtime', action='store_true')
 p.add_argument('--snap', action='store_true')
@@ -25,7 +25,7 @@ a = p.parse_args()
 OUT = Path(a.out or ROOT / 'build' / ('compatibility-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))).resolve()
 OUT.mkdir(parents=True, exist_ok=False)
 APP = Path(a.app).resolve()
-BIN = APP / 'Contents/MacOS/KeyPilot'
+BIN = APP / 'Contents/MacOS/iHotkey'
 results = []
 
 def run(name, cmd, timeout=180, expected=None):
@@ -76,25 +76,25 @@ for cpu in ['arm64', 'x86_64']:
 
 run('unit-tests', ['bash', 'scripts/test.sh'], timeout=300, expected='passed')
 sdk = subprocess.check_output(['xcrun', '--show-sdk-path'], text=True).strip()
-core = sorted((ROOT/'Sources/KeyPilotCore').glob('*.swift'))
-sources = sorted((ROOT/'Sources/KeyPilot').rglob('*.swift'))
+core = sorted((ROOT/'Sources/iHotkeyCore').glob('*.swift'))
+sources = sorted((ROOT/'Sources/iHotkey').rglob('*.swift'))
 for cpu in ['arm64', 'x86_64']:
     modules = OUT / ('modules-'+cpu)
     modules.mkdir()
-    _, emitted = run('compile-core-'+cpu, ['xcrun', 'swiftc', '-emit-module', '-module-name', 'KeyPilotCore',
+    _, emitted = run('compile-core-'+cpu, ['xcrun', 'swiftc', '-emit-module', '-module-name', 'iHotkeyCore',
         '-swift-version', '5', '-target', cpu+'-apple-macosx12.0', '-sdk', sdk,
-        '-emit-module-path', modules/'KeyPilotCore.swiftmodule', *core], timeout=300)
+        '-emit-module-path', modules/'iHotkeyCore.swiftmodule', *core], timeout=300)
     if emitted['status'] != 'PASS':
         continue
     for version in ['12.0', '13.0', '14.0', '15.0', '26.0']:
         run('typecheck-'+cpu+'-macos'+version,
-            ['xcrun', 'swiftc', '-typecheck', '-module-name', 'KeyPilot', '-swift-version', '5',
+            ['xcrun', 'swiftc', '-typecheck', '-module-name', 'iHotkey', '-swift-version', '5',
              '-target', cpu+'-apple-macosx'+version, '-sdk', sdk, '-I', modules, *sources], timeout=300)
 
-config = Path.home()/'Library/Application Support/KeyPilot/config.json'
+config = Path.home()/'Library/Application Support/iHotkey/config.json'
 config_before = digest(config)
 bin_sha = digest(BIN)
-installed_sha = digest(ROOT/'dist/KeyPilot.app/Contents/MacOS/KeyPilot')
+installed_sha = digest(ROOT/'dist/iHotkey.app/Contents/MacOS/iHotkey')
 record('installed-matches-dist', bin_sha == installed_sha, {'installed': bin_sha, 'dist': installed_sha})
 
 if a.runtime:
