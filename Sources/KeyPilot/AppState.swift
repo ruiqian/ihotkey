@@ -136,11 +136,18 @@ final class AppState: ObservableObject {
     }
 
     func performSnap(_ action: SnapAction) {
-        WindowManager.shared.perform(
+        let outcome = WindowManager.shared.perform(
             action,
             gap: CGFloat(config.settings.snapGap),
             cycle: config.settings.cycleHalves
         )
+        if outcome == .notTrusted {
+            // Make the failure visible instead of silently doing nothing.
+            refreshAccessibility()
+            selectedTab = .snap
+            (NSApp.delegate as? AppDelegate)?.showMainWindow()
+            showToast(L("分屏需要辅助功能权限，请按页面顶部提示授权", "Window snap needs Accessibility permission — see the banner above"), isError: true)
+        }
     }
 
     /// Global hotkeys swallow key presses before our window sees them, so they are

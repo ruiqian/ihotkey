@@ -27,6 +27,10 @@ The release build is ad-hoc signed, not notarized. The first time you open it, *
 xattr -dr com.apple.quarantine /Applications/KeyPilot.app
 ```
 
+### Building from source: keep the Accessibility grant
+
+macOS ties the Accessibility grant to the app's code signature. An ad-hoc signature changes on every build, so after a rebuild the switch in System Settings still shows **on** but window snapping silently stops working. `scripts/build-app.sh` avoids this by signing with a local self-signed certificate (created once by `scripts/setup-signing.sh` in a dedicated keychain). The grant then survives rebuilds. If you ever hit the stale-grant state anyway, run `tccutil reset Accessibility com.keypilot.app` or click **Reset & Grant Again** in the app, then switch KeyPilot on again.
+
 ### Permissions
 
 | Feature | Permission |
@@ -102,6 +106,8 @@ KeyPilot 是一款免费、开源的 macOS 状态栏工具：
 **安装**：下载 DMG，把 KeyPilot 拖进「应用程序」。首次打开请**右键 → 打开**，或执行 `xattr -dr com.apple.quarantine /Applications/KeyPilot.app`。
 
 **权限**：应用快捷键不需要任何权限。分屏需要「辅助功能」权限（系统设置 › 隐私与安全性 › 辅助功能）。
+
+**开关打开了但分屏没反应？** macOS 把授权绑定在应用签名上，应用被重新编译、更新或换位置后，旧的授权会失效，但开关还显示为打开。在「分屏」页点「已经打开了开关，还是不行？→ 重置并重新授权」，或者执行 `tccutil reset Accessibility com.keypilot.app`，然后重新打开开关。自己编译时，`build-app.sh` 会用本机自签名证书签名，重新编译后授权不会丢。
 
 **使用**：
 - 「应用快捷键」页：点「添加应用」或把 .app 拖进来，点击右侧框录制快捷键（⎋ 取消，⌫ 清除）

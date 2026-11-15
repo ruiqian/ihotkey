@@ -9,7 +9,9 @@ VERSION="${VERSION:-1.0.0}"
 BUILD="${BUILD:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}"
 BUNDLE_ID="com.keypilot.app"
 APP="dist/KeyPilot.app"
-SIGN_IDENTITY="${SIGN_IDENTITY:--}"   # "-" = ad-hoc
+SIGN_IDENTITY="${SIGN_IDENTITY:-}"
+SIGN_KEYCHAIN="$HOME/Library/Keychains/keypilot-signing.keychain-db"
+SIGN_PWFILE="$HOME/Library/Application Support/KeyPilot/.signing-keychain-password"
 
 echo "==> Compiling (release, universal)"
 if swift build -c release --arch arm64 --arch x86_64 >/tmp/keypilot-build.log 2>&1; then
@@ -70,13 +72,27 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
-echo "==> Codesigning ($SIGN_IDENTITY)"
-if [[ "$SIGN_IDENTITY" == "-" ]]; then
+echo "==> Codesigning"
+# Default: a stable local self-signed identity (keeps the Accessibility permission
+# across rebuilds). Set SIGN_IDENTITY="Developer ID Application: …" for releases,
+# or SIGN_IDENTITY=- to force ad-hoc (permission is then lost on every rebuild).
+if [[ -z "$SIGN_IDENTITY" ]]; then
+  if SIGN_IDENTITY="$(./scripts/setup-signing.sh 2>/dev/null)"; then
+    security unlock-keychain -p "$(cat "$SIGN_PWFILE")" "$SIGN_KEYCHAIN"
+    echo "    using local identity: $SIGN_IDENTITY"
+    codesign --force --deep --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$APP"
+  else
+    echo "    WARNING: could not create a local signing identity; falling back to ad-hoc."
+    echo "    Accessibility permission will have to be re-granted after each rebuild."
+    codesign --force --deep --sign - "$APP"
+  fi
+elif [[ "$SIGN_IDENTITY" == "-" ]]; then
   codesign --force --deep --sign - "$APP"
 else
   codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
 fi
 codesign --verify --strict "$APP"
+codesign -d -r- "$APP" 2>&1 | grep designated
 
 echo "==> Creating DMG"
 DMG="dist/KeyPilot-${VERSION}.dmg"

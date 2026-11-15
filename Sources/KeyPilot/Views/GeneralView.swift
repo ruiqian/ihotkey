@@ -67,9 +67,14 @@ struct GeneralView: View {
                                 Label(L("已授权", "Granted"), systemImage: "checkmark.circle.fill")
                                     .foregroundColor(.green).font(.system(size: 12))
                             } else {
-                                Button(L("去授权", "Grant")) {
-                                    Accessibility.request()
-                                    Accessibility.openSettings()
+                                HStack {
+                                    Button(L("重置授权", "Reset")) { Accessibility.resetAndRequest() }
+                                        .help(L("开关已打开但仍无效时使用", "Use when the switch is on but it still doesn't work"))
+                                    Button(L("去授权", "Grant")) {
+                                        Accessibility.request()
+                                        Accessibility.openSettings()
+                                    }
+                                    .buttonStyle(.borderedProminent)
                                 }
                             }
                         }

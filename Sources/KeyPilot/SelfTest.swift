@@ -7,6 +7,7 @@ import KeyPilotCore
 /// Does not touch the user's config. Exit code 0 = all good.
 enum SelfTest {
     static func runIfRequested() -> Bool {
+        if CommandLine.arguments.contains("--self-test-snap") { runSnapTest(); return true }
         guard CommandLine.arguments.contains("--self-test") else { return false }
         var failed = false
         func check(_ ok: Bool, _ msg: String) {
@@ -72,6 +73,70 @@ enum SelfTest {
         HotKeyCenter.shared.unregisterAll()
         print(failed ? "SELF-TEST FAILED" : "SELF-TEST OK")
         exit(failed ? 1 : 0)
+    }
+
+    /// Real end-to-end window snap against TextEdit. Must be started via
+    /// `open KeyPilot.app --args --self-test-snap <report-file>` so that macOS
+    /// attributes the Accessibility check to KeyPilot rather than the terminal.
+    private static func runSnapTest() {
+        let args = CommandLine.arguments
+        let reportPath = args.firstIndex(of: "--self-test-snap").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+        var lines: [String] = []
+        var failed = false
+        func log(_ s: String) { lines.append(s); print(s) }
+        func check(_ ok: Bool, _ msg: String) { log((ok ? "PASS " : "FAIL ") + msg); if !ok { failed = true } }
+        func finish() {
+            log(failed ? "SNAP-TEST FAILED" : "SNAP-TEST OK")
+            if let reportPath { try? lines.joined(separator: "\n").write(toFile: reportPath, atomically: true, encoding: .utf8) }
+            exit(failed ? 1 : 0)
+        }
+
+        log("bundle: \(Bundle.main.bundlePath)")
+        let trusted = Accessibility.isTrusted
+        check(trusted, "AXIsProcessTrusted")
+        guard trusted else { finish(); return }
+
+        // Open a scratch TextEdit document and bring it to front.
+        let doc = FileManager.default.temporaryDirectory.appendingPathComponent("keypilot-snap-test.txt")
+        try? "KeyPilot snap test".write(to: doc, atomically: true, encoding: .utf8)
+        let cfg = NSWorkspace.OpenConfiguration()
+        cfg.activates = true
+        let textEdit = URL(fileURLWithPath: "/System/Applications/TextEdit.app")
+        NSWorkspace.shared.open([doc], withApplicationAt: textEdit, configuration: cfg) { _, _ in }
+
+        func step(_ delay: Double, _ body: @escaping () -> Void) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: body)
+        }
+        step(2.5) {
+            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit").first?
+                .activate(options: [])
+            step(0.8) {
+                let wm = WindowManager.shared
+                log("target app: \(wm.targetApp()?.localizedName ?? "nil")")
+                guard let screen = NSScreen.screens.first(where: {
+                    wm.targetWindowFrame().map($0.frame.intersects) ?? false
+                }) ?? NSScreen.main else { check(false, "screen"); finish(); return }
+                let visible = screen.visibleFrame
+                let before = wm.targetWindowFrame()
+                check(before != nil, "read focused window frame \(before.map { "\($0)" } ?? "")")
+
+                for action in [SnapAction.leftHalf, .rightHalf, .topLeft, .maximize, .center, .restore] {
+                    let outcome = wm.perform(action, gap: 0, cycle: false)
+                    usleep(300_000)
+                    let now = wm.targetWindowFrame() ?? .zero
+                    var ok = outcome == .moved
+                    if let unit = action.unitRect {
+                        let expected = SnapGeometry.rect(forUnit: unit, in: visible)
+                        ok = ok && SnapGeometry.approximatelyEqual(now, expected, tolerance: 4)
+                    }
+                    if action == .restore, let before {
+                        ok = ok && SnapGeometry.approximatelyEqual(now, before, tolerance: 4)
+                    }
+                    check(ok, "\(action.rawValue) -> \(outcome) frame \(now.integral)")
+                }
+                finish()
+            }
+        }
     }
 
     private static func makeHotKeyEvent(id: UInt32) -> EventRef? {

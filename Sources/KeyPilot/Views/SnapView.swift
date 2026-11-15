@@ -25,14 +25,7 @@ struct SnapView: View {
             }
 
             if !state.accessibilityTrusted {
-                WarningBanner(
-                    text: L("分屏需要「辅助功能」权限：在 系统设置 › 隐私与安全性 › 辅助功能 中勾选 KeyPilot。",
-                            "Window snap needs Accessibility permission: enable KeyPilot in System Settings › Privacy & Security › Accessibility."),
-                    buttonTitle: L("去授权", "Grant")
-                ) {
-                    Accessibility.request()
-                    Accessibility.openSettings()
-                }
+                AccessibilityHelpBanner()
             }
 
             ScrollView {

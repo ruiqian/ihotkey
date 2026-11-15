@@ -72,6 +72,7 @@ private struct Sidebar: View {
 
                 if !state.accessibilityTrusted {
                     Button {
+                        state.selectedTab = .snap
                         Accessibility.request()
                         Accessibility.openSettings()
                     } label: {
