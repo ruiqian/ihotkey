@@ -51,6 +51,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             check(window?.isVisible == true, "window shown")
             check(NSApp.activationPolicy() == .regular, "Dock icon visible while window open")
             check(statusItem?.button?.image != nil, "status bar item present")
+            check(statusItem.autosaveName == "iHotkeyStatusItem", "status item saves its stable position")
+            check(statusItem.length == 24, "status item uses compact explicit width")
+            if let frame = statusItem.button?.window?.frame,
+               let screen = statusItem.button?.window?.screen,
+               #available(macOS 12, *), screen.safeAreaInsets.top > 0,
+               let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+                check(left.contains(CGPoint(x: frame.midX, y: frame.midY)) || right.contains(CGPoint(x: frame.midX, y: frame.midY)), "status item lies outside display notch")
+            }
 
             window?.performClose(nil)
             check(window?.isVisible == false, "close button hides window")
@@ -164,11 +172,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     // MARK: - Status item
 
     private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        // Give this item a stable identity and a right-edge initial position.
+        // Otherwise a new unnamed item can be laid out underneath the display notch.
+        // Seed once only: never override a user's later Command-drag placement.
+        let positionKey = "NSStatusItem Preferred Position iHotkeyStatusItem"
+        if UserDefaults.standard.object(forKey: positionKey) == nil {
+            UserDefaults.standard.set(0, forKey: positionKey)
+        }
+        statusItem = NSStatusBar.system.statusItem(withLength: 24)
+        statusItem.autosaveName = "iHotkeyStatusItem"
+        statusItem.isVisible = true
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "command.square", accessibilityDescription: "iHotkey")
+            let image = NSImage(systemSymbolName: "command", accessibilityDescription: "iHotkey")
+            image?.size = NSSize(width: 16, height: 16)
             image?.isTemplate = true
             button.image = image
+            button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
+            button.setAccessibilityLabel("iHotkey")
             button.toolTip = "iHotkey"
         }
         let menu = NSMenu()

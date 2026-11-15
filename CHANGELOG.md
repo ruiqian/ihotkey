@@ -10,6 +10,7 @@ Changes after the `1.0.0-rc.1` candidate will be recorded here.
 
 ### Fixed
 
+- Menu-bar icon now has a stable autosave identity and a one-time right-edge placement hint, preventing initial placement under the display notch. A compact 24-point item with a 16-point template Command icon supports system tint and preserves later user placement.
 - Minimizing iHotkey's own settings window now uses its native hide-to-menu-bar path before any Accessibility check. The preview button no longer hides first and accidentally targets the previous application.
 - Minimize failures now distinguish full-screen, missing window and AX failure instead of always suggesting the window is full-screen.
 - Added a failing-then-passing UI regression for own-window minimize, continued menu-bar operation and absence of an error toast.
