@@ -13,6 +13,10 @@ KeyPilot is a free, open-source macOS menu bar app for two things:
 - macOS 12 Monterey and later, universal binary (Apple Silicon + Intel)
 - Chinese and English UI
 
+| App shortcuts | Window snap |
+|---|---|
+| ![](docs/apps.png) | ![](docs/snap-dark.png) |
+
 ## Install
 
 Download `KeyPilot-x.y.z.dmg` from Releases and drag KeyPilot into Applications.
